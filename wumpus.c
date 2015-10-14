@@ -1,30 +1,12 @@
 /*
- * wumpus.c --- a faithful translation of the classic "Hunt The Wumpus" game.
+ * Hunt the Wumpus
+ * by Daniele Olmisani <daniele.olmisani@gmail.com>
  *
- * Translator: Eric S. Raymond <esr@snark.thyrsus.com>
- * Version: $Id: wumpus.c,v 1.4 1996/05/17 17:30:35 esr Exp esr $
+ * compile using:
+ * gcc -Wall -std=c11 wumpus.c -o wumpus
  *
- * The BASIC source is that posted by Magnus Olsson in USENET article
- * <9207071854.AA21847@thep.lu.se>: he wrote
- *
- * >Below is the source code for _one_ (rather simple) Wumpus version,
- * >which I found in the PC-BLUE collection on SIMTEL20. I believe this is
- * >pretty much the same version that was published in David Ahl's "101
- * >Basic Computer Games" (or, possibly, in the sequel).
- *
- * I have staunchly resisted the temptation to "improve" this game.  It
- * is functionally identical to the BASIC version (source for which
- * appears in the comments).  I fixed some typos in the help text.
- *
- * Language hackers may be interested to know that he most difficult thing
- * about the translation was tracking the details required to translate from
- * 1-origin to 0-origin array indexing.
- *
- * The only enhancement is a an -s command-line switch for setting the
- * random number seed.
- *
- * So, pretend for a little while that your workstation is an ASR-33 and
- * limber up your fingers for a trip to nostalgia-land...
+ * see also:
+ * wumpus.c by Eric S. Raymond <esr@snark.thyrsus.com>
  */
 
 #include <stdio.h>
@@ -33,40 +15,33 @@
 #include <string.h>
 #include <unistd.h>
 #include <time.h>
+#include <getopt.h>
 
-/* 5 REM *** HUNT THE WUMPUS ***					*/
 
-/* 10 DIM P(5)								*/
 static int path[5];
 
-static int j, k, arrows, scratchloc;
-static char inp[BUFSIZ];		/* common input buffer */
+static int arrows, scratchloc;
 
-#define YOU	0
+/* common input buffer */
+static char inp[BUFSIZ];		
+
+#define YOU	    0
 #define WUMPUS	1
 #define PIT1	2
 #define PIT2	3
 #define BATS1	4
 #define BATS2	5
 #define LOCS	6
-static int loc[LOCS], save[LOCS];	/* locations */
 
-#define NOT	0
-#define WIN	1
+/* locations */
+static int loc[LOCS], save[LOCS];	
+
+#define NOT	     0
+#define WIN	     1
 #define LOSE	-1
+
 static int finished;
 
-/* 80 REM *** SET UP CAVE (DODECAHEDRAL NODE LIST) ***		*/
-/* 85 DIM S(20,3)							*/
-/* 90 FOR J=1 TO 20							*/
-/* 95 FOR K=1 TO 3							*/
-/* 100 READ S(J,K)							*/
-/* 105 NEXT K							*/
-/* 110 NEXT J							*/
-/* 115 DATA 2,5,8,1,3,10,2,4,12,3,5,14,1,4,6			*/
-/* 120 DATA 5,7,15,6,8,17,1,7,9,8,10,18,2,9,11			*/
-/* 125 DATA 10,12,19,3,11,13,12,14,20,4,13,15,6,14,16		*/
-/* 130 DATA 15,17,20,7,16,18,9,17,19,11,18,20,13,16,19		*/
 static int cave[20][3] =
 {
     {1,4,7},
@@ -91,18 +66,7 @@ static int cave[20][3] =
     {12,15,18},
 };
 
-/* 135 DEF FNA(X)=INT(20*RND(1))+1					*/
-#define FNA() (rand() % 20)
-
-/* 140 DEF FNB(X)=INT(3*RND(1))+1					*/
-#define FNB() (rand() % 3)
-
-/* 145 DEF FNC(X)=INT(4*RND(1))+1					*/
-#define FNC() (rand() % 4)
-
-int getnum(prompt)
-char *prompt;
-{
+int getnum(char* prompt) {
     (void) printf("%s\n?", prompt);
     if (fgets(inp, sizeof(inp), stdin))
       return(atoi(inp));
@@ -112,9 +76,7 @@ char *prompt;
     }
 }
 
-int getlet(prompt)
-char *prompt;
-{
+int getlet(char* prompt) {
     (void) printf("%s\n?", prompt);
     if (fgets(inp, sizeof(inp), stdin))
       return(toupper(inp[0]));
@@ -124,93 +86,65 @@ char *prompt;
     }
 }
 
-void print_instructions()
-{
-/* 375 REM *** INSTRUCTIONS ***						*/
-/* 380 PRINT "WELCOME TO 'HUNT THE WUMPUS'"				*/
-    puts("WELCOME TO 'HUNT THE WUMPUS'");
-/* 385 PRINT "  THE WUMPUS LIVES IN A CAVE OF 20 ROOMS. EACH ROOM"	*/
-    puts("  THE WUMPUS LIVES IN A CAVE OF 20 ROOMS. EACH ROOM");
-/* 390 PRINT "HAS 3 TUNNELS LEADING TO OTHER ROOMS. (LOOK AT A"		*/
-    puts("HAS 3 TUNNELS LEADING TO OTHER ROOMS. (LOOK AT A");
-/* 395 PRINT "DODECAHEDRON TO SEE HOW THIS WORKS-IF YOU DON'T KNOW"	*/
-    puts("DODECAHEDRON TO SEE HOW THIS WORKS-IF YOU DON'T KNOW");
-/* 400 PRINT "WHAT A DODECAHEDRON IS, ASK SOMEONE)"			*/
-    puts("WHAT A DODECAHEDRON IS, ASK SOMEONE)");
-/* 405 PRINT								*/
-    puts("");
-/* 410 PRINT "     HAZARDS:"						*/
-    puts("     HAZARDS:");
-/* 415 PRINT " BOTTOMLESS PITS - TWO ROOMS HAVE BOTTOMLESS PITS IN THEM	*/
-    puts(" BOTTOMLESS PITS - TWO ROOMS HAVE BOTTOMLESS PITS IN THEM");
-/* 420 PRINT "     IF YOU GO THERE, YOU FALL INTO THE PIT (& LOSE!)"	*/
-    puts("     IF YOU GO THERE, YOU FALL INTO THE PIT (& LOSE!)");
-/* 425 PRINT " SUPER BATS - TWO OTHER ROOMS HAVE SUPER BATS. IF YOU"	*/
-    puts(" SUPER BATS - TWO OTHER ROOMS HAVE SUPER BATS. IF YOU");
-/* 430 PRINT "     GO THERE, A BAT GRABS YOU AND TAKES YOU TO SOME OTHER"	*/
-    puts("     GO THERE, A BAT GRABS YOU AND TAKES YOU TO SOME OTHER");
-/* 435 PRINT "     ROOM AT RANDOM. (WHICH MAY BE TROUBLESOME)"		*/
-    puts("     ROOM AT RANDOM. (WHICH MAY BE TROUBLESOME)");
-/* 440 INPUT "TYPE AN E THEN RETURN ";W9				*/
-    (void) getlet("TYPE AN E THEN RETURN ");
-/* 445 PRINT "     WUMPUS:"						*/
-    puts("     WUMPUS:");
-/* 450 PRINT " THE WUMPUS IS NOT BOTHERED BY HAZARDS (HE HAS SUCKER"	*/
-    puts(" THE WUMPUS IS NOT BOTHERED BY HAZARDS (HE HAS SUCKER");
-/* 455 PRINT " FEET AND IS TOO BIG FOR A BAT TO LIFT).  USUALLY"	*/
-    puts(" FEET AND IS TOO BIG FOR A BAT TO LIFT).  USUALLY");
-/* 460 PRINT " HE IS ASLEEP.  TWO THINGS WAKE HIM UP: YOU SHOOTING AN"	*/
-    puts(" HE IS ASLEEP.  TWO THINGS WAKE HIM UP: YOU SHOOTING AN");
-/* 465 PRINT "ARROW OR YOU ENTERING HIS ROOM."				*/
-    puts("ARROW OR YOU ENTERING HIS ROOM.");
-/* 470 PRINT "     IF THE WUMPUS WAKES HE MOVES (P=.75) ONE ROOM"	*/
-    puts("     IF THE WUMPUS WAKES HE MOVES (P=.75) ONE ROOM");
-/* 475 PRINT " OR STAYS STILL (P=.25).  AFTER THAT, IF HE IS WHERE YOU"	*/
-    puts(" OR STAYS STILL (P=.25).  AFTER THAT, IF HE IS WHERE YOU");
-/* 480 PRINT " ARE, HE EATS YOU UP AND YOU LOSE!"			*/
-    puts(" ARE, HE EATS YOU UP AND YOU LOSE!");
-/* 485 PRINT								*/
-    puts("");
-/* 490 PRINT "     YOU:"						*/
-    puts("     YOU:");
-/* 495 PRINT " EACH TURN YOU MAY MOVE OR SHOOT A CROOKED ARROW"		*/
-    puts(" EACH TURN YOU MAY MOVE OR SHOOT A CROOKED ARROW");
-/* 500 PRINT "   MOVING:  YOU CAN MOVE ONE ROOM (THRU ONE TUNNEL)"	*/
-    puts("   MOVING:  YOU CAN MOVE ONE ROOM (THRU ONE TUNNEL)");
-/* 505 PRINT "   ARROWS:  YOU HAVE 5 ARROWS.  YOU LOSE WHEN YOU RUN OUT	*/
-    puts("   ARROWS:  YOU HAVE 5 ARROWS.  YOU LOSE WHEN YOU RUN OUT");
-/* 510 PRINT "   EACH ARROW CAN GO FROM 1 TO 5 ROOMS. YOU AIM BY TELLING*/
-    puts("   EACH ARROW CAN GO FROM 1 TO 5 ROOMS. YOU AIM BY TELLING");
-/* 515 PRINT "   THE COMPUTER THE ROOM#S YOU WANT THE ARROW TO GO TO."	*/
-    puts("   THE COMPUTER THE ROOM#S YOU WANT THE ARROW TO GO TO.");
-/* 520 PRINT "   IF THE ARROW CAN'T GO THAT WAY (IF NO TUNNEL) IT MOVES"*/
-    puts("   IF THE ARROW CAN'T GO THAT WAY (IF NO TUNNEL) IT MOVES");
-/* 525 PRINT "   AT RANDOM TO THE NEXT ROOM."				*/
-    puts("   AT RANDOM TO THE NEXT ROOM.");
-/* 530 PRINT "     IF THE ARROW HITS THE WUMPUS, YOU WIN."		*/
-    puts("     IF THE ARROW HITS THE WUMPUS, YOU WIN.");
-/* 535 PRINT "     IF THE ARROW HITS YOU, YOU LOSE."			*/
-    puts("     IF THE ARROW HITS YOU, YOU LOSE.");
-/* 540 INPUT "TYPE AN E THEN RETURN ";W9				*/
-    (void) getlet("TYPE AN E THEN RETURN ");
-/* 545 PRINT "    WARNINGS:"						*/
-    puts("    WARNINGS:");
-/* 550 PRINT "     WHEN YOU ARE ONE ROOM AWAY FROM A WUMPUS OR HAZARD,"	*/
-    puts("     WHEN YOU ARE ONE ROOM AWAY FROM A WUMPUS OR HAZARD,");
-/* 555 PRINT "     THE COMPUTER SAYS:"					*/
-    puts("     THE COMPUTER SAYS:");
-/* 560 PRINT " WUMPUS:  'I SMELL A WUMPUS'"				*/
-    puts(" WUMPUS:  'I SMELL A WUMPUS'");
-/* 565 PRINT " BAT   :  'BATS NEARBY'"					*/
-    puts(" BAT   :  'BATS NEARBY'");
-/* 570 PRINT " PIT   :  'I FEEL A DRAFT'"				*/
-    puts(" PIT   :  'I FEEL A DRAFT'");
-/* 575 PRINT								*/
-    puts("");
-/* 580 RETURN								*/
+void print_instructions() {
+
+    printf(
+        "WELCOME TO 'HUNT THE WUMPUS'\n"
+        "  THE WUMPUS LIVES IN A CAVE OF 20 ROOMS. EACH ROOM\n"
+        "HAS 3 TUNNELS LEADING TO OTHER ROOMS. (LOOK AT A\n"
+        "DODECAHEDRON TO SEE HOW THIS WORKS-IF YOU DON'T KNOW\n"
+        "WHAT A DODECAHEDRON IS, ASK SOMEONE)\n"
+        "\n"
+        "     HAZARDS:\n"
+        " BOTTOMLESS PITS - TWO ROOMS HAVE BOTTOMLESS PITS IN THEM\n"
+        "     IF YOU GO THERE, YOU FALL INTO THE PIT (& LOSE!)\n"
+        " SUPER BATS - TWO OTHER ROOMS HAVE SUPER BATS. IF YOU\n"
+        "     GO THERE, A BAT GRABS YOU AND TAKES YOU TO SOME OTHER\n"
+        "     ROOM AT RANDOM. (WHICH MAY BE TROUBLESOME)\n"
+    );
+
+    printf("Press any key\n");
+    getchar();
+
+    /*getlet("TYPE AN E THEN RETURN ");*/
+
+    printf(
+        "     WUMPUS:\n"
+        " THE WUMPUS IS NOT BOTHERED BY HAZARDS (HE HAS SUCKER\n"
+        " FEET AND IS TOO BIG FOR A BAT TO LIFT).  USUALLY\n"
+        " HE IS ASLEEP.  TWO THINGS WAKE HIM UP: YOU SHOOTING AN\n"
+        "ARROW OR YOU ENTERING HIS ROOM.\n"
+        "     IF THE WUMPUS WAKES HE MOVES (P=.75) ONE ROOM\n"
+        " OR STAYS STILL (P=.25).  AFTER THAT, IF HE IS WHERE YOU\n"
+        " ARE, HE EATS YOU UP AND YOU LOSE!\n"
+        "\n"
+        "     YOU:\n"
+        " EACH TURN YOU MAY MOVE OR SHOOT A CROOKED ARROW\n"
+        "   MOVING:  YOU CAN MOVE ONE ROOM (THRU ONE TUNNEL)\n"
+        "   ARROWS:  YOU HAVE 5 ARROWS.  YOU LOSE WHEN YOU RUN OUT\n"
+        "   EACH ARROW CAN GO FROM 1 TO 5 ROOMS. YOU AIM BY TELLING\n"
+        "   THE COMPUTER THE ROOM#S YOU WANT THE ARROW TO GO TO.\n"
+        "   IF THE ARROW CAN'T GO THAT WAY (IF NO TUNNEL) IT MOVES\n"
+        "   AT RANDOM TO THE NEXT ROOM.\n"
+        "     IF THE ARROW HITS THE WUMPUS, YOU WIN.\n"
+        "     IF THE ARROW HITS YOU, YOU LOSE.\n"
+    );
+
+    printf("Press any key\n");
+    getchar();
+
+    printf(
+        "    WARNINGS:\n"
+        "     WHEN YOU ARE ONE ROOM AWAY FROM A WUMPUS OR HAZARD,\n"
+        "     THE COMPUTER SAYS:\n"
+        " WUMPUS:  'I SMELL A WUMPUS'\n"
+        " BAT   :  'BATS NEARBY'\n"
+        " PIT   :  'I FEEL A DRAFT'\n"
+        "\n"
+    );
 }
 
-void check_hazards()
+void show_room()
 {
     /* 585 REM *** PRINT LOCATION & HAZARD WARNINGS ***			*/
     /* 590 PRINT							*/
@@ -227,7 +161,7 @@ void check_hazards()
     /* 635 PRINT "BATS NEARBY!"						*/
     /* 640 NEXT K							*/
     /* 645 NEXT J							*/
-    for (k = 0; k < 3; k++)
+    for (int k = 0; k < 3; k++)
     {
 	int room = cave[loc[YOU]][k];
 
@@ -252,29 +186,15 @@ void check_hazards()
     /* 665 RETURN							*/
 }
 
-int move_or_shoot()
-{
-    int c;
+int move_or_shoot() {
 
-    /* 670 REM *** CHOOSE OPTION ***					*/
+    int c = -1;
 
-badin:
-    /* 675 PRINT "SHOOT OR MOVE (S-M)";					*/
-    /* 680 INPUT I$							*/
-    c = getlet("SHOOT OR MOVE (S-M)");
+    while ((c != 'S') && (c != 'M')) {
+        c = getlet("SHOOT OR MOVE (S-M)");
+    }
 
-    /* 685 IF I$<>"S" THEN 700						*/
-    /* 690 O=1								*/
-    /* 695 RETURN							*/
-    /* 700 IF I$<>"M" THEN 675						*/
-    /* 705 O=2								*/
-    /* 710 RETURN							*/
-    if (c == 'S')
-	return(1);
-    else if (c == 'M')
-	return(0);
-    else
-	goto badin;
+    return (c == 'S') ? 1 : 0;
 }
 
 
@@ -300,7 +220,7 @@ badrange:
 	goto badrange;
 
     /* 755 FOR K=1 TO J9						*/
-    for (k = 0; k < j9; k++)
+    for (int k = 0; k < j9; k++)
     {
 	/* 760 PRINT "ROOM #";						*/
 	/* 765 INPUT P(K)						*/
@@ -327,7 +247,7 @@ badrange:
     scratchloc = loc[YOU];
 
     /* 805 FOR K=1 TO J9						*/
-    for (k = 0; k < j9; k++)
+    for (int k = 0; k < j9; k++)
     {
 	int	k1;
 
@@ -359,7 +279,7 @@ badrange:
 
 	/* 825 REM *** NO TUNNEL FOR ARROW ***				*/
 	/* 830 L=S(L,FNB(1))						*/
-	scratchloc = cave[scratchloc][FNB()];
+	scratchloc = cave[scratchloc][rand() % 3];
 
 	/* 835 GOTO 900							*/
 	check_shot();
@@ -392,51 +312,27 @@ badrange:
 
 void check_shot()
 {
-    /* 890 REM *** SEE IF ARROW IS AT L(1) OR AT L(2)			*/
-    /* 895 L=P(K)							*/
-
-    /* 900 IF L<>L(2) THEN 920						*/
-    /* 905 PRINT "AHA! YOU GOT THE WUMPUS!"				*/
-    /* 910 F=1								*/
-    /* 915 RETURN							*/
-    if (scratchloc == loc[WUMPUS])
-    {
-	(void) puts("AHA! YOU GOT THE WUMPUS!");
-	finished = WIN;
-    }
-
-    /* 920 IF L<>L(1) THEN 840						*/
-    /* 925 PRINT "OUCH! ARROW GOT YOU!"					*/
-    /* 930 GOTO 880							*/
-    else if (scratchloc == loc[YOU])
-    {
-	(void) puts("OUCH! ARROW GOT YOU!");
-	finished = LOSE;
+    if (scratchloc == loc[WUMPUS]) {
+        printf("AHA! YOU GOT THE WUMPUS!\n");
+        finished = WIN;
+    } else if (scratchloc == loc[YOU]) {
+        printf("OUCH! ARROW GOT YOU!\n");
+        finished = LOSE;
     }
 }
 
-void move_wumpus()
-{
-    /* 935 REM *** MOVE WUMPUS ROUTINE ***				*/
-    /* 940 K=FNC(0)							*/
-    k = FNC();
+void move_wumpus() {
 
-    /* 945 IF K=4 THEN 955						*/
-    /* 950 L(2)=S(L(2),K)						*/
-    if (k < 3)
-	loc[WUMPUS] = cave[loc[WUMPUS]][k];
+    int k = rand() % 4;
 
-    /* 955 IF L(2)<>L THEN 970						*/
-    if (loc[WUMPUS] != loc[YOU])
-	return;
+    if (k < 3) {
+	   loc[WUMPUS] = cave[loc[WUMPUS]][k];
+    }
 
-    /* 960 PRINT "TSK TSK TSK - WUMPUS GOT YOU!"			*/
-    (void) puts("TSK TSK TSK - WUMPUS GOT YOU!");
-
-    /* 965 F=-1								*/
-    finished = LOSE;
-
-    /* 970 RETURN							*/
+    if (loc[WUMPUS] == loc[YOU]) {
+        printf("TSK TSK TSK - WUMPUS GOT YOU!\n");
+        finished = LOSE;
+    }
 }
 
 void move()
@@ -457,7 +353,7 @@ badmove:
     scratchloc--;
 
     /* 1005 FOR K=1 TO 3						*/
-    for (k = 0; k < 3; k++)
+    for (int k = 0; k < 3; k++)
     {
 	/* 1010 REM *** CHECK IF LEGAL MOVE ***				*/
 	/* 1015 IF S(L(1),K)=L THEN 1045				*/
@@ -516,15 +412,12 @@ goodmove:
 	/* 1145 RETURN							*/
 	/* 1150 END							*/
 	(void) puts("ZAP--SUPER BAT SNATCH! ELSEWHEREVILLE FOR YOU!");
-	scratchloc = loc[YOU] = FNA();
+	scratchloc = loc[YOU] = rand()%20;
 	goto goodmove;
     }
 }
 
-int main(argc, argv)
-int argc;
-char *argv[];
-{
+int main(int argc, char* argv[]) {
     int	c;
 
     if (argc >= 2 && strcmp(argv[1], "-s") == 0)
@@ -551,8 +444,8 @@ badlocs:
     /* 175 L(J)=FNA(0)							*/
     /* 180 M(J)=L(J)							*/
     /* 185 NEXT J							*/
-    for (j = 0; j < LOCS; j++)
-	loc[j] = save[j] = FNA();
+    for (int j = 0; j < LOCS; j++)
+	loc[j] = save[j] = rand() % 20;
 
     /* 190 REM *** CHECK FOR CROSSOVERS (IE L(1)=L(2), ETC) ***		*/
     /* 195 FOR J=1 TO 6							*/
@@ -561,8 +454,8 @@ badlocs:
     /* 210 IF L(J)=L(K) THEN 170					*/
     /* 215 NEXT K							*/
     /* 220 NEXT J							*/
-    for (j = 0; j < LOCS; j++)
-	for (k = 0; k < LOCS; k++)
+    for (int j = 0; j < LOCS; j++)
+	for (int k = 0; k < LOCS; k++)
 	    if (j == k)
 		continue;
     	    else if (loc[j] == loc[k])
@@ -589,7 +482,7 @@ newgame:
 nextmove:
     /* 250 REM *** HAZARD WARNING AND LOCATION ***			*/
     /* 255 GOSUB 585							*/
-    check_hazards();
+    show_room();
 
     /* 260 REM *** MOVE OR SHOOT ***					*/
     /* 265 GOSUB 670							*/
@@ -635,8 +528,9 @@ nextmove:
     /* 340 FOR J=1 TO 6							*/
     /* 345 L(J)=M(J)							*/
     /* 350 NEXT J							*/
-    for (j = YOU; j < LOCS; j++)
-	loc[j] = save[j];
+    for (int j = YOU; j < LOCS; j++) {
+        loc[j] = save[j];
+    }
 
     /* 355 PRINT "SAME SETUP (Y-N)";					*/
     /* 360 INPUT I$							*/
@@ -649,5 +543,3 @@ nextmove:
     else
 	goto newgame;
 }
-
-/* wumpus.c ends here */
