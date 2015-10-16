@@ -77,6 +77,7 @@ int getnum(char* prompt) {
 }
 
 int getlet(char* prompt) {
+
     (void) printf("%s\n?", prompt);
     if (fgets(inp, sizeof(inp), stdin))
       return(toupper(inp[0]));
@@ -90,39 +91,37 @@ void print_instructions() {
 
     printf(
         "WELCOME TO 'HUNT THE WUMPUS'\n"
-        "  THE WUMPUS LIVES IN A CAVE OF 20 ROOMS. EACH ROOM\n"
+        "THE WUMPUS LIVES IN A CAVE OF 20 ROOMS. EACH ROOM\n"
         "HAS 3 TUNNELS LEADING TO OTHER ROOMS. (LOOK AT A\n"
         "DODECAHEDRON TO SEE HOW THIS WORKS-IF YOU DON'T KNOW\n"
         "WHAT A DODECAHEDRON IS, ASK SOMEONE)\n"
         "\n"
-        "     HAZARDS:\n"
+        " HAZARDS:\n"
         " BOTTOMLESS PITS - TWO ROOMS HAVE BOTTOMLESS PITS IN THEM\n"
-        "     IF YOU GO THERE, YOU FALL INTO THE PIT (& LOSE!)\n"
+        " IF YOU GO THERE, YOU FALL INTO THE PIT (& LOSE!)\n"
         " SUPER BATS - TWO OTHER ROOMS HAVE SUPER BATS. IF YOU\n"
-        "     GO THERE, A BAT GRABS YOU AND TAKES YOU TO SOME OTHER\n"
-        "     ROOM AT RANDOM. (WHICH MAY BE TROUBLESOME)\n"
+        " GO THERE, A BAT GRABS YOU AND TAKES YOU TO SOME OTHER\n"
+        " ROOM AT RANDOM. (WHICH MAY BE TROUBLESOME)\n"
     );
 
     printf("Press any key\n");
     getchar();
 
-    /*getlet("TYPE AN E THEN RETURN ");*/
-
     printf(
-        "     WUMPUS:\n"
+        " WUMPUS:\n"
         " THE WUMPUS IS NOT BOTHERED BY HAZARDS (HE HAS SUCKER\n"
         " FEET AND IS TOO BIG FOR A BAT TO LIFT).  USUALLY\n"
         " HE IS ASLEEP.  TWO THINGS WAKE HIM UP: YOU SHOOTING AN\n"
-        "ARROW OR YOU ENTERING HIS ROOM.\n"
-        "     IF THE WUMPUS WAKES HE MOVES (P=.75) ONE ROOM\n"
+        " ARROW OR YOU ENTERING HIS ROOM.\n"
+        " IF THE WUMPUS WAKES HE MOVES (P=.75) ONE ROOM\n"
         " OR STAYS STILL (P=.25).  AFTER THAT, IF HE IS WHERE YOU\n"
         " ARE, HE EATS YOU UP AND YOU LOSE!\n"
         "\n"
-        "     YOU:\n"
+        " YOU:\n"
         " EACH TURN YOU MAY MOVE OR SHOOT A CROOKED ARROW\n"
-        "   MOVING:  YOU CAN MOVE ONE ROOM (THRU ONE TUNNEL)\n"
-        "   ARROWS:  YOU HAVE 5 ARROWS.  YOU LOSE WHEN YOU RUN OUT\n"
-        "   EACH ARROW CAN GO FROM 1 TO 5 ROOMS. YOU AIM BY TELLING\n"
+        " MOVING:  YOU CAN MOVE ONE ROOM (THRU ONE TUNNEL)\n"
+        " ARROWS:  YOU HAVE 5 ARROWS.  YOU LOSE WHEN YOU RUN OUT\n"
+        " EACH ARROW CAN GO FROM 1 TO 5 ROOMS. YOU AIM BY TELLING\n"
         "   THE COMPUTER THE ROOM#S YOU WANT THE ARROW TO GO TO.\n"
         "   IF THE ARROW CAN'T GO THAT WAY (IF NO TUNNEL) IT MOVES\n"
         "   AT RANDOM TO THE NEXT ROOM.\n"
@@ -144,46 +143,29 @@ void print_instructions() {
     );
 }
 
-void show_room()
-{
-    /* 585 REM *** PRINT LOCATION & HAZARD WARNINGS ***			*/
-    /* 590 PRINT							*/
-    (void) puts("");
+void show_room() {
 
-    /* 595 FOR J=2 TO 6							*/
-    /* 600 FOR K=1 TO 3							*/
-    /* 605 IF S(L(1),K)<>L(J) THEN 640					*/
-    /* 610 ON J-1 GOTO 615,625,625,635,635				*/
-    /* 615 PRINT "I SMELL A WUMPUS!"					*/
-    /* 620 GOTO 640							*/
-    /* 625 PRINT "I FEEL A DRAFT"					*/
-    /* 630 GOTO 640							*/
-    /* 635 PRINT "BATS NEARBY!"						*/
-    /* 640 NEXT K							*/
-    /* 645 NEXT J							*/
-    for (int k = 0; k < 3; k++)
-    {
-	int room = cave[loc[YOU]][k];
+    printf("\n");
 
-	if (room == loc[WUMPUS])
-	    (void) puts("I SMELL A WUMPUS!");
-	else if (room == loc[PIT1] || room == loc[PIT2])
-	    (void) puts("I FEEL A DRAFT");
-	else if (room == loc[BATS1] || room == loc[BATS2])
-	    (void) puts("BATS NEARBY!");
+    for (int k = 0; k < 3; k++) {
+
+	   int room = cave[loc[YOU]][k];
+
+	   if (room == loc[WUMPUS]) {
+	       printf("I SMELL A WUMPUS!\n");
+	   } else if (room == loc[PIT1] || room == loc[PIT2]) {
+	       printf("I FEEL A DRAFT\n");
+	   } else if (room == loc[BATS1] || room == loc[BATS2]) {
+	       printf("BATS NEARBY!\n");
+       }
     }
 
-    /* 650 PRINT "YOU ARE IN ROOM "L(1)					*/
-    (void) printf("YOU ARE IN ROOM %d\n", loc[YOU]+1);
+    printf("YOU ARE IN ROOM %d\n", loc[YOU]+1);
 
-    /* 655 PRINT "TUNNELS LEAD TO "S(L,1);S(L,2);S(L,3)			*/
-    (void) printf("TUNNELS LEAD TO %d %d %d\n",
-		  cave[loc[YOU]][0]+1, cave[loc[YOU]][1]+1, cave[loc[YOU]][2]+1);
-
-    /* 660 PRINT							*/
-    (void) puts("");
-
-    /* 665 RETURN							*/
+    printf("TUNNELS LEAD TO %d %d %d\n\n",
+        cave[loc[YOU]][0]+1, 
+        cave[loc[YOU]][1]+1, 
+        cave[loc[YOU]][2]+1);
 }
 
 int move_or_shoot() {
@@ -198,10 +180,38 @@ int move_or_shoot() {
 }
 
 
+void check_shot() {
 
-void shoot()
-{
-    extern void check_shot(), move_wumpus();
+    if (scratchloc == loc[WUMPUS]) {
+
+        printf("AHA! YOU GOT THE WUMPUS!\n");
+        finished = WIN;
+
+    } else if (scratchloc == loc[YOU]) {
+
+        printf("OUCH! ARROW GOT YOU!\n");
+        finished = LOSE;
+    }
+}
+
+
+void move_wumpus() {
+
+    int k = rand() % 4;
+
+    if (k < 3) {
+       loc[WUMPUS] = cave[loc[WUMPUS]][k];
+    }
+
+    if (loc[WUMPUS] == loc[YOU]) {
+        printf("TSK TSK TSK - WUMPUS GOT YOU!\n");
+        finished = LOSE;
+    }
+}
+
+
+void shoot() {
+
     int	j9;
 
     /* 715 REM *** ARROW ROUTINE ***					*/
@@ -310,114 +320,53 @@ badrange:
     /* 885 RETURN							*/
 }
 
-void check_shot()
-{
-    if (scratchloc == loc[WUMPUS]) {
-        printf("AHA! YOU GOT THE WUMPUS!\n");
-        finished = WIN;
-    } else if (scratchloc == loc[YOU]) {
-        printf("OUCH! ARROW GOT YOU!\n");
-        finished = LOSE;
-    }
-}
 
-void move_wumpus() {
+void move() {
 
-    int k = rand() % 4;
-
-    if (k < 3) {
-	   loc[WUMPUS] = cave[loc[WUMPUS]][k];
-    }
-
-    if (loc[WUMPUS] == loc[YOU]) {
-        printf("TSK TSK TSK - WUMPUS GOT YOU!\n");
-        finished = LOSE;
-    }
-}
-
-void move()
-{
-    /* 975 REM *** MOVE ROUTINE ***					*/
-    /* 980 F=0								*/
     finished = NOT;
 
-badmove:
-    /* 985 PRINT "WHERE TO";						*/
-    /* 990 INPUT L							*/
-    scratchloc = getnum("WHERE TO");
+    scratchloc = -1;
+    while (scratchloc == -1) {
 
-    /* 995 IF L<1 THEN 985						*/
-    /* 1000 IF L>20 THEN 985						*/
-    if (scratchloc < 1 || scratchloc > 20)
-	goto badmove;
-    scratchloc--;
+         scratchloc = getnum("WHERE TO")-1;
 
-    /* 1005 FOR K=1 TO 3						*/
-    for (int k = 0; k < 3; k++)
-    {
-	/* 1010 REM *** CHECK IF LEGAL MOVE ***				*/
-	/* 1015 IF S(L(1),K)=L THEN 1045				*/
-	if (cave[loc[YOU]][k] == scratchloc)
-	    goto goodmove;
+         if (scratchloc < 0 || scratchloc > 19) {
+            scratchloc = -1;
+            continue;
+         }
 
-	/* 1020 NEXT K							*/
+         if ((cave[loc[YOU]][0] != scratchloc) &
+             (cave[loc[YOU]][1] != scratchloc) &
+             (cave[loc[YOU]][2] != scratchloc) &
+             (loc[YOU] != scratchloc)) {
+
+            printf("NOT POSSIBLE\n");
+
+            scratchloc = -1;
+            continue;
+         }
     }
-
-    /* 1025 IF L=L(1) THEN 1045						*/
-    if (scratchloc != loc[YOU])
-    {
-	/* 1030 PRINT "NOT POSSIBLE -";					*/
-	(void) puts("NOT POSSIBLE -");
-
-	/* 1035 GOTO 985						*/
-	goto badmove;
-    }
-
-goodmove:
-    /* 1040 REM *** CHECK FOR HAZARDS ***				*/
-    /* 1045 L(1)=L							*/
+   
     loc[YOU] = scratchloc;
 
-    if (scratchloc == loc[WUMPUS])
-    {
-	/* 1050 REM *** WUMPUS ***					*/
-	/* 1055 IF L<>L(2) THEN 1090					*/
-	/* 1060 PRINT "... OOPS! BUMPED A WUMPUS!"			*/
-	/* 1065 REM *** MOVE WUMPUS ***					*/
-	/* 1070 GOSUB 940						*/
-	/* 1075 IF F=0 THEN 1090					*/
-	/* 1080 RETURN							*/
-	(void) puts("... OOPS! BUMPED A WUMPUS!");
-	move_wumpus();
+    while ((scratchloc == loc[BATS1]) || (scratchloc == loc[BATS2])) {
+        printf("ZAP--SUPER BAT SNATCH! ELSEWHEREVILLE FOR YOU!\n");
+        scratchloc = loc[YOU] = rand()%20;
     }
-    else if (scratchloc == loc[PIT1] || scratchloc == loc[PIT2])
-    {
-	/* 1085 REM *** PIT ***						*/
-	/* 1090 IF L=L(3) THEN 1100					*/
-	/* 1095 IF L<>L(4) THEN 1120					*/
-	/* 1100 PRINT "YYYYIIIIEEEE . . . FELL IN PIT"			*/
-	/* 1105 F=-1							*/
-	/* 1110 RETURN							*/
-	(void) puts("YYYYIIIIEEEE . . . FELL IN PIT");
-	finished = LOSE;
-    }
-    else if (scratchloc == loc[BATS1] || scratchloc == loc[BATS2])
-    {
-	/* 1115 REM *** BATS ***					*/
-	/* 1120 IF L=L(5) THEN 1130					*/
-	/* 1125 IF L<>L(6) THEN 1145					*/
-	/* 1130 PRINT "ZAP--SUPER BAT SNATCH! ELSEWHEREVILLE FOR YOU!"	*/
-	/* 1135 L=FNA(1)						*/
-	/* 1140 GOTO 1045						*/
-	/* 1145 RETURN							*/
-	/* 1150 END							*/
-	(void) puts("ZAP--SUPER BAT SNATCH! ELSEWHEREVILLE FOR YOU!");
-	scratchloc = loc[YOU] = rand()%20;
-	goto goodmove;
+
+    if (scratchloc == loc[WUMPUS]) {
+	   printf("... OOPS! BUMPED A WUMPUS!\n");
+	   move_wumpus();
+    } 
+
+    if (scratchloc == loc[PIT1] || scratchloc == loc[PIT2]) {
+	   printf("YYYYIIIIEEEE . . . FELL IN PIT\n");
+	   finished = LOSE;
     }
 }
 
 int main(int argc, char* argv[]) {
+
     int	c;
 
     if (argc >= 2 && strcmp(argv[1], "-s") == 0)
