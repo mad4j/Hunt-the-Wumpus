@@ -3,7 +3,7 @@
  * by Daniele Olmisani <daniele.olmisani@gmail.com>
  *
  * compile:
- * gcc -Wall -std=c11 wumpus.c -o wumpus
+ * gcc -Wall -std=c99 wumpus.c -o wumpus
  *
  * usage:
  * ./wumpus [-h] [-s seed] [-d]
@@ -67,7 +67,7 @@ static int cave[20][3] =
 int getnum(char* prompt) {
 
     int n;
-    printf("%s? ", prompt);
+    printf("%s: ", prompt);
     scanf("%d", &n);
 
     return n;
@@ -75,10 +75,12 @@ int getnum(char* prompt) {
 
 int getlet(char* prompt) {
 
-    char c;
+    char c = '\n';
 
-    printf("%s? ", prompt);
-    scanf("%c", &c);
+    printf("%s: ", prompt);
+    while (c == '\n') {
+        scanf("%c", &c);
+    }
 
     return toupper(c);
 }
@@ -100,8 +102,7 @@ void print_instructions() {
         " ROOM AT RANDOM. (WHICH MAY BE TROUBLESOME)\n"
     );
 
-    printf("Press any key\n");
-    getchar();
+    getlet("Press any key");
 
     printf(
         " WUMPUS:\n"
@@ -125,8 +126,7 @@ void print_instructions() {
         "     IF THE ARROW HITS YOU, YOU LOSE.\n"
     );
 
-    printf("Press any key\n");
-    getchar();
+    getlet("Press any key");
 
     printf(
         " WARNINGS:\n"
@@ -170,7 +170,6 @@ int move_or_shoot() {
 
     while ((c != 'S') && (c != 'M')) {
         c = getlet("SHOOT OR MOVE (S-M)");
-        printf("X '%c'\n", c);
     }
 
     return (c == 'S') ? 1 : 0;
