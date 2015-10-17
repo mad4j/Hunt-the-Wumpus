@@ -20,11 +20,8 @@
 #include <time.h>
 #include <getopt.h>
 
-static int arrows, scratchloc;
-static int debug = 0;
-
-/* common input buffer */
-static char inp[BUFSIZ];		
+static int arrows;
+static int debug = 0;	
 
 #define YOU	    0
 #define WUMPUS	1
@@ -68,24 +65,22 @@ static int cave[20][3] =
 };
 
 int getnum(char* prompt) {
-    (void) printf("%s\n?", prompt);
-    if (fgets(inp, sizeof(inp), stdin))
-      return(atoi(inp));
-    else {
-      fputs("\n",stdout);
-      exit(1);
-    }
+
+    int n;
+    printf("%s? ", prompt);
+    scanf("%d", &n);
+
+    return n;
 }
 
 int getlet(char* prompt) {
 
-    (void) printf("%s\n?", prompt);
-    if (fgets(inp, sizeof(inp), stdin))
-      return(toupper(inp[0]));
-    else {
-      fputs("\n",stdout);
-      exit(1);
-    }
+    char c;
+
+    printf("%s? ", prompt);
+    scanf("%c", &c);
+
+    return toupper(c);
 }
 
 void print_instructions() {
@@ -175,24 +170,10 @@ int move_or_shoot() {
 
     while ((c != 'S') && (c != 'M')) {
         c = getlet("SHOOT OR MOVE (S-M)");
+        printf("X '%c'\n", c);
     }
 
     return (c == 'S') ? 1 : 0;
-}
-
-
-void check_shot() {
-
-    if (scratchloc == loc[WUMPUS]) {
-
-        printf("AHA! YOU GOT THE WUMPUS!\n");
-        finished = WIN;
-
-    } else if (scratchloc == loc[YOU]) {
-
-        printf("OUCH! ARROW GOT YOU!\n");
-        finished = LOSE;
-    }
 }
 
 
@@ -214,6 +195,7 @@ void move_wumpus() {
 void shoot() {
 
     int path[5];
+    int scratchloc = -1;
 
     finished = NOT;
 
@@ -247,7 +229,17 @@ void shoot() {
             scratchloc = cave[scratchloc][rand() % 3];
         }
 
-        check_shot();
+        if (scratchloc == loc[WUMPUS]) {
+
+            printf("AHA! YOU GOT THE WUMPUS!\n");
+            finished = WIN;
+
+        } else if (scratchloc == loc[YOU]) {
+
+            printf("OUCH! ARROW GOT YOU!\n");
+            finished = LOSE;
+        }
+
         if (finished != NOT) {
             return;
         }
@@ -267,7 +259,7 @@ void move() {
 
     finished = NOT;
 
-    scratchloc = -1;
+    int scratchloc = -1;
     while (scratchloc == -1) {
 
          scratchloc = getnum("WHERE TO")-1;
@@ -312,7 +304,7 @@ void handle_params(int argc, char* argv[]) {
 
     int c;
 
-    while ((c =getopt(argc, argv, "s:dh")) != -1) {
+    while ((c = getopt(argc, argv, "s:dh")) != -1) {
         switch (c) {
         case 's':
             srand(atoi(optarg));
@@ -366,7 +358,6 @@ int main(int argc, char* argv[]) {
     while (1) {
 
         arrows = 5;
-        scratchloc = loc[YOU];
 
         printf("HUNT THE WUMPUS\n");
 
@@ -377,6 +368,7 @@ int main(int argc, char* argv[]) {
                 loc[BATS1]+1, loc[BATS2]+1);
         }
 
+        finished = NOT;
         while (finished == NOT) {
 
             show_room();
