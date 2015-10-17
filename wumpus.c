@@ -31,7 +31,6 @@ static int debug = 0;
 #define BATS2	5
 #define LOCS	6
 
-/* locations */
 static int loc[LOCS];
 
 #define NOT	     0
@@ -100,11 +99,6 @@ void print_instructions() {
         " SUPER BATS     : TWO OTHER ROOMS HAVE SUPER BATS. IF YOU\n"
         " GO THERE, A BAT GRABS YOU AND TAKES YOU TO SOME OTHER\n"
         " ROOM AT RANDOM. (WHICH MAY BE TROUBLESOME)\n"
-    );
-
-    getlet("Press any key");
-
-    printf(
         " WUMPUS:\n"
         " THE WUMPUS IS NOT BOTHERED BY HAZARDS (HE HAS SUCKER\n"
         " FEET AND IS TOO BIG FOR A BAT TO LIFT).  USUALLY\n"
@@ -124,11 +118,6 @@ void print_instructions() {
         "   AT RANDOM TO THE NEXT ROOM.\n"
         "     IF THE ARROW HITS THE WUMPUS, YOU WIN.\n"
         "     IF THE ARROW HITS YOU, YOU LOSE.\n"
-    );
-
-    getlet("Press any key");
-
-    printf(
         " WARNINGS:\n"
         " WHEN YOU ARE ONE ROOM AWAY FROM A WUMPUS OR HAZARD,\n"
         " THE COMPUTER SAYS:\n"
@@ -225,7 +214,7 @@ void shoot() {
 
             scratchloc = path[k];
         } else {
-            scratchloc = cave[scratchloc][rand() % 3];
+            scratchloc = cave[scratchloc][rand()%3];
         }
 
         if (scratchloc == loc[WUMPUS]) {
@@ -256,28 +245,26 @@ void shoot() {
 
 void move() {
 
-    finished = NOT;
-
     int scratchloc = -1;
     while (scratchloc == -1) {
 
-         scratchloc = getnum("WHERE TO")-1;
+        scratchloc = getnum("WHERE TO")-1;
 
-         if (scratchloc < 0 || scratchloc > 19) {
+        if (scratchloc < 0 || scratchloc > 19) {
             scratchloc = -1;
             continue;
-         }
+        }
 
-         if ((cave[loc[YOU]][0] != scratchloc) &
-             (cave[loc[YOU]][1] != scratchloc) &
-             (cave[loc[YOU]][2] != scratchloc) &
-             (loc[YOU] != scratchloc)) {
+        if ((cave[loc[YOU]][0] != scratchloc) &
+            (cave[loc[YOU]][1] != scratchloc) &
+            (cave[loc[YOU]][2] != scratchloc) &
+            (loc[YOU] != scratchloc)) {
 
             printf("NOT POSSIBLE\n");
 
             scratchloc = -1;
             continue;
-         }
+        }
     }
    
     loc[YOU] = scratchloc;
@@ -296,6 +283,66 @@ void move() {
 	   printf("YYYYIIIIEEEE . . . FELL IN PIT\n");
 	   finished = LOSE;
     }
+}
+
+
+void game_setup() {
+
+    for (int j = 0; j < LOCS; j++) {
+
+        loc[j] = -1;
+        while (loc[j] < 0) {
+
+            loc[j] = rand()%20;
+
+            for (int k=0; k<j-1; k++) {
+                if (loc[j] == loc[k]) {
+                    loc[j] = -1;
+                }
+           }
+       }
+    }
+}
+
+
+void game_play() {
+
+    arrows = 5;
+
+    printf("HUNT THE WUMPUS\n");
+
+    if (debug) {
+        printf("Wumpus is at %d, pits at %d & %d, bats at %d & %d\n",
+            loc[WUMPUS]+1,
+            loc[PIT1]+1, loc[PIT2]+1,
+            loc[BATS1]+1, loc[BATS2]+1);
+    }
+
+    finished = NOT;
+    while (finished == NOT) {
+
+        show_room();
+        if (move_or_shoot()) {
+            shoot();
+        } else {
+            move();
+        }
+    }
+
+    if (finished == WIN) {
+        printf("HEE HEE HEE - THE WUMPUS'LL GET YOU NEXT TIME!!\n");
+    }
+
+    if (finished == LOSE) {
+        printf("HA HA HA - YOU LOSE!\n");
+    }
+
+    int c = getlet("NEW GAME (Y-N)");
+
+    if (c == 'N') {
+        exit(0);
+    }
+  
 }
 
 
@@ -320,76 +367,21 @@ void handle_params(int argc, char* argv[]) {
 }
 
 
-void game_setup() {
-
-    for (int j = 0; j < LOCS; j++) {
-
-        loc[j] = -1;
-        while (loc[j] < 0) {
-
-            loc[j] = rand() % 20;
-
-            for (int k=0; k<j-1; k++) {
-                if (loc[j] == loc[k]) {
-                    loc[j] = -1;
-                }
-           }
-       }
-    }
-}
-
-
 int main(int argc, char* argv[]) {
-
-    int c;
 
     srand(time(0));
     handle_params(argc, argv);
     
-    c = getlet("INSTRUCTIONS (Y-N)");
+    int c = getlet("INSTRUCTIONS (Y-N)");
 
     if (c == 'Y') {
 	   print_instructions();
     }
 
-    game_setup();
+    do { 
+        
+        game_setup();
+        game_play();
 
-    while (1) {
-
-        arrows = 5;
-
-        printf("HUNT THE WUMPUS\n");
-
-        if (debug) {
-            printf("Wumpus is at %d, pits at %d & %d, bats at %d & %d\n",
-                loc[WUMPUS]+1,
-                loc[PIT1]+1, loc[PIT2]+1,
-                loc[BATS1]+1, loc[BATS2]+1);
-        }
-
-        finished = NOT;
-        while (finished == NOT) {
-
-            show_room();
-            if (move_or_shoot()) {
-                shoot();
-            } else {
-                move();
-            }
-        }
-
-        if (finished == WIN) {
-            printf("HEE HEE HEE - THE WUMPUS'LL GET YOU NEXT TIME!!\n");
-        }
-
-        if (finished == LOSE) {
-            printf("HA HA HA - YOU LOSE!\n");
-        }
-
-        c = getlet("NEW GAME (Y-N)");
-
-        if (c == 'N') {
-            exit(0);
-        }
-    }
+    } while (getlet("NEW GAME (Y-N)") != 'N');
 }
