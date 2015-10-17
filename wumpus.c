@@ -2,8 +2,11 @@
  * Hunt the Wumpus
  * by Daniele Olmisani <daniele.olmisani@gmail.com>
  *
- * compile using:
+ * compile:
  * gcc -Wall -std=c11 wumpus.c -o wumpus
+ *
+ * usage:
+ * ./wumpus [-h] [-s seed] [-d]
  *
  * see also:
  * wumpus.c by Eric S. Raymond <esr@snark.thyrsus.com>
@@ -17,10 +20,8 @@
 #include <time.h>
 #include <getopt.h>
 
-
-static int path[5];
-
 static int arrows, scratchloc;
+static int debug = 0;
 
 /* common input buffer */
 static char inp[BUFSIZ];		
@@ -34,7 +35,7 @@ static char inp[BUFSIZ];
 #define LOCS	6
 
 /* locations */
-static int loc[LOCS], save[LOCS];	
+static int loc[LOCS];
 
 #define NOT	     0
 #define WIN	     1
@@ -97,9 +98,9 @@ void print_instructions() {
         "WHAT A DODECAHEDRON IS, ASK SOMEONE)\n"
         "\n"
         " HAZARDS:\n"
-        " BOTTOMLESS PITS - TWO ROOMS HAVE BOTTOMLESS PITS IN THEM\n"
+        " BOTTOMLESS PITS: TWO ROOMS HAVE BOTTOMLESS PITS IN THEM\n"
         " IF YOU GO THERE, YOU FALL INTO THE PIT (& LOSE!)\n"
-        " SUPER BATS - TWO OTHER ROOMS HAVE SUPER BATS. IF YOU\n"
+        " SUPER BATS     : TWO OTHER ROOMS HAVE SUPER BATS. IF YOU\n"
         " GO THERE, A BAT GRABS YOU AND TAKES YOU TO SOME OTHER\n"
         " ROOM AT RANDOM. (WHICH MAY BE TROUBLESOME)\n"
     );
@@ -133,9 +134,9 @@ void print_instructions() {
     getchar();
 
     printf(
-        "    WARNINGS:\n"
-        "     WHEN YOU ARE ONE ROOM AWAY FROM A WUMPUS OR HAZARD,\n"
-        "     THE COMPUTER SAYS:\n"
+        " WARNINGS:\n"
+        " WHEN YOU ARE ONE ROOM AWAY FROM A WUMPUS OR HAZARD,\n"
+        " THE COMPUTER SAYS:\n"
         " WUMPUS:  'I SMELL A WUMPUS'\n"
         " BAT   :  'BATS NEARBY'\n"
         " PIT   :  'I FEEL A DRAFT'\n"
@@ -212,112 +213,53 @@ void move_wumpus() {
 
 void shoot() {
 
-    int	j9;
+    int path[5];
 
-    /* 715 REM *** ARROW ROUTINE ***					*/
-    /* 720 F=0								*/
     finished = NOT;
 
-    /* 725 REM *** PATH OF ARROW ***					*/
-badrange:
-    /* 735 PRINT "NO. OF ROOMS (1-5)";					*/
-    /* 740 INPUT J9							*/
-    j9 = getnum("NO. OF ROOMS (1-5)");
-
-    /* 745 IF J9<1 THEN 735						*/
-    /* 750 IF J9>5 THEN 735						*/
-    if (j9 < 1 || j9 > 5)
-	goto badrange;
-
-    /* 755 FOR K=1 TO J9						*/
-    for (int k = 0; k < j9; k++)
-    {
-	/* 760 PRINT "ROOM #";						*/
-	/* 765 INPUT P(K)						*/
-	path[k] = getnum("ROOM #") - 1;
-
-	/* 770 IF K<=2 THEN 790						*/
-	if (k <= 1)
-	    continue;
-
-	/* 775 IF P(K)<>P(K-2) THEN 790					*/
-	if (path[k] != path[k - 2])
-	    continue;
-
-	/* 780 PRINT "ARROWS AREN'T THAT CROOKED - TRY ANOTHER ROOM"	*/
-	(void) puts("ARROWS AREN'T THAT CROOKED - TRY ANOTHER ROOM");
-	/* 785 GOTO 760							*/
-	k--;
-
-	/* 790 NEXT K							*/
+    int len = -1;
+    while (len < 1 || len > 5) {
+        len = getnum("NO. OF ROOMS (1-5)");
     }
 
-    /* 795 REM *** SHOOT ARROW ***					*/
-    /* 800 L=L(1)							*/
+    int k = 0;
+    while (k < len) {
+        path[k] = getnum("ROOM #") - 1;
+
+        if ((k>1) && (path[k] == path[k-2])) {
+            printf("ARROWS AREN'T THAT CROOKED - TRY ANOTHER ROOM\n");
+            continue; 
+       } 
+
+       k++;
+    }
+ 
     scratchloc = loc[YOU];
 
-    /* 805 FOR K=1 TO J9						*/
-    for (int k = 0; k < j9; k++)
-    {
-	int	k1;
+    for (int k = 0; k < len; k++) {
 
-	/* 810 FOR K1=1 TO 3						*/
-	for (k1 = 0; k1 < 3; k1++)
-	{
-	    /* 815 IF S(L,K1)=P(K) THEN 895				*/
-	    if (cave[scratchloc][k1] == path[k])
-	    {
-		/*
-		 * This is the only bit of the translation I'm not sure
-		 * about.  It requires the trajectory of the arrow to
-		 * be a path.  Without it, all rooms on the trajectory
-		 * would be required by the above to be adjacent to the
-		 * player, making for a trivial game --- just move to where
-		 * you smell a wumpus and shoot into all adjacent passages!
-		 * However, I can't find an equivalent in the BASIC.
-		 */
-		scratchloc = path[k];
+        if ((cave[scratchloc][0] == path[k]) ||
+            (cave[scratchloc][1] == path[k]) ||
+            (cave[scratchloc][2] == path[k])) {
 
-		/* this simulates logic at 895 in the BASIC code */
-		check_shot();
-		if (finished != NOT)
-		    return;
-	    }
+            scratchloc = path[k];
+        } else {
+            scratchloc = cave[scratchloc][rand() % 3];
+        }
 
-	    /* 820 NEXT K1						*/
-	}
-
-	/* 825 REM *** NO TUNNEL FOR ARROW ***				*/
-	/* 830 L=S(L,FNB(1))						*/
-	scratchloc = cave[scratchloc][rand() % 3];
-
-	/* 835 GOTO 900							*/
-	check_shot();
-
-	/* 840 NEXT K							*/
+        check_shot();
+        if (finished != NOT) {
+            return;
+        }
     }
 
-    if (finished == NOT)
-    {
-	/* 845 PRINT "MISSED"						*/
-	(void) puts("MISSED");
+	printf("MISSED\n");
 
-	/* 850 L=L(1)							*/
-	scratchloc = loc[YOU];
-
-	/* 855 REM *** MOVE WUMPUS ***					*/
-	/* 860 GOSUB 935						*/
 	move_wumpus();
 
-	/* 865 REM *** AMMO CHECK ***					*/
-	/* 870 A=A-1							*/
-	/* 875 IF A>0 THEN 885						*/
-	/* 880 F=-1							*/
-	if (--arrows <= 0)
+	if (--arrows <= 0) {
 	    finished = LOSE;
     }
-
-    /* 885 RETURN							*/
 }
 
 
@@ -365,130 +307,98 @@ void move() {
     }
 }
 
+
+void handle_params(int argc, char* argv[]) {
+
+    int c;
+
+    while ((c =getopt(argc, argv, "s:dh")) != -1) {
+        switch (c) {
+        case 's':
+            srand(atoi(optarg));
+            break; 
+        case 'd':
+            debug = 1;
+            break;
+        case 'h':
+        default:
+            printf("usage: ./%s [-h] [-d] [-s seed]\n", argv[0]);
+            exit(1);
+        }
+    }
+}
+
+
+void game_setup() {
+
+    for (int j = 0; j < LOCS; j++) {
+
+        loc[j] = -1;
+        while (loc[j] < 0) {
+
+            loc[j] = rand() % 20;
+
+            for (int k=0; k<j-1; k++) {
+                if (loc[j] == loc[k]) {
+                    loc[j] = -1;
+                }
+           }
+       }
+    }
+}
+
+
 int main(int argc, char* argv[]) {
 
-    int	c;
+    int c;
 
-    if (argc >= 2 && strcmp(argv[1], "-s") == 0)
-	srand(atoi(argv[2]));
-    else
-	srand((int)time((long *) 0));
-
-    /* 15 PRINT "INSTRUCTIONS (Y-N)";					*/
-    /* 20 INPUT I$							*/
+    srand(time(0));
+    handle_params(argc, argv);
+    
     c = getlet("INSTRUCTIONS (Y-N)");
 
-    /* 25 IF I$="N" THEN 35						*/
-    /* 30 GOSUB 375							*/
-    /* 35 GOTO 80							*/
-    if (c == 'Y')
-	print_instructions();
-
-    /* 150 REM *** LOCATE L ARRAY ITEMS ***				*/
-    /* 155 REM *** 1-YOU, 2-WUMPUS, 3&4-PITS, 5&6-BATS ***		*/
-    /* 160 DIM L(6)							*/
-    /* 165 DIM M(6)							*/
-badlocs:
-    /* 170 FOR J=1 TO 6							*/
-    /* 175 L(J)=FNA(0)							*/
-    /* 180 M(J)=L(J)							*/
-    /* 185 NEXT J							*/
-    for (int j = 0; j < LOCS; j++)
-	loc[j] = save[j] = rand() % 20;
-
-    /* 190 REM *** CHECK FOR CROSSOVERS (IE L(1)=L(2), ETC) ***		*/
-    /* 195 FOR J=1 TO 6							*/
-    /* 200 FOR K=1 TO 6							*/
-    /* 205 IF J=K THEN 215						*/
-    /* 210 IF L(J)=L(K) THEN 170					*/
-    /* 215 NEXT K							*/
-    /* 220 NEXT J							*/
-    for (int j = 0; j < LOCS; j++)
-	for (int k = 0; k < LOCS; k++)
-	    if (j == k)
-		continue;
-    	    else if (loc[j] == loc[k])
-		goto badlocs;
-
-    /* 225 REM *** SET NO. OF ARROWS ***				*/
-newgame:
-    /* 230 A=5								*/
-    /* 235 L=L(1)							*/
-    arrows = 5;
-    scratchloc = loc[YOU];
-
-    /* 240 REM *** RUN THE GAME ***					*/
-    /* 245 PRINT "HUNT THE WUMPUS"					*/
-    (void) puts("HUNT THE WUMPUS");
-
-#ifdef DEBUG
-    (void) printf("Wumpus is at %d, pits at %d & %d, bats at %d & %d\n",
-		  loc[WUMPUS]+1,
-		  loc[PIT1]+1, loc[PIT2]+1,
-		  loc[BATS1]+1, loc[BATS2]+1);
-#endif
-
-nextmove:
-    /* 250 REM *** HAZARD WARNING AND LOCATION ***			*/
-    /* 255 GOSUB 585							*/
-    show_room();
-
-    /* 260 REM *** MOVE OR SHOOT ***					*/
-    /* 265 GOSUB 670							*/
-    /* 270 ON O GOTO 280,300						*/
-    if (move_or_shoot())
-    {
-	/* 275 REM *** SHOOT ***					*/
-	/* 280 GOSUB 715						*/
-	shoot();
-
-	/* 285 IF F=0 THEN 255						*/
-	if (finished == NOT)
-	    goto nextmove;
-
-	/* 290 GOTO 310							*/
-    }
-    else
-    {
-	/* 295 REM *** MOVE ***						*/
-	/* 300 GOSUB 975						*/
-	move();
-
-	/* 305 IF F=0 THEN 255						*/
-	if (finished == NOT)
-	    goto nextmove;
+    if (c == 'Y') {
+	   print_instructions();
     }
 
-    /* 310 IF F>0 THEN 335						*/
-    if (finished == LOSE)
-    {
-	/* 315 REM *** LOSE ***						*/
-	/* 320 PRINT "HA HA HA - YOU LOSE!"				*/
-	/* 325 GOTO 340							*/
-	(void) puts("HA HA HA - YOU LOSE!");
-    }
-    else
-    {
-	/* 330 REM *** WIN ***						*/
-	/* 335 PRINT "HEE HEE HEE - THE WUMPUS'LL GET YOU NEXT TIME!!"	*/
-	(void) puts("HEE HEE HEE - THE WUMPUS'LL GET YOU NEXT TIME!!");
-    }
+    game_setup();
 
-    /* 340 FOR J=1 TO 6							*/
-    /* 345 L(J)=M(J)							*/
-    /* 350 NEXT J							*/
-    for (int j = YOU; j < LOCS; j++) {
-        loc[j] = save[j];
+    while (1) {
+
+        arrows = 5;
+        scratchloc = loc[YOU];
+
+        printf("HUNT THE WUMPUS\n");
+
+        if (debug) {
+            printf("Wumpus is at %d, pits at %d & %d, bats at %d & %d\n",
+                loc[WUMPUS]+1,
+                loc[PIT1]+1, loc[PIT2]+1,
+                loc[BATS1]+1, loc[BATS2]+1);
+        }
+
+        while (finished == NOT) {
+
+            show_room();
+            if (move_or_shoot()) {
+                shoot();
+            } else {
+                move();
+            }
+        }
+
+        if (finished == WIN) {
+            printf("HEE HEE HEE - THE WUMPUS'LL GET YOU NEXT TIME!!\n");
+        }
+
+        if (finished == LOSE) {
+            printf("HA HA HA - YOU LOSE!\n");
+        }
+
+        c = getlet("NEW GAME (Y-N)");
+
+        if (c == 'N') {
+            exit(0);
+        }
     }
-
-    /* 355 PRINT "SAME SETUP (Y-N)";					*/
-    /* 360 INPUT I$							*/
-    c = getlet("SAME SETUP (Y-N)");
-
-    /* 365 IF I$<>"Y"THEN 170						*/
-    /* 370 GOTO 230							*/
-    if (c != 'Y')
-	goto badlocs;
-    else
-	goto newgame;
 }
