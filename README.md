@@ -2,9 +2,9 @@
 
 # Hunt-the-Wumpus
 
-The question is: Is it possible to write small readable code.
-We are using classic 'Hunt the Wumpus' as teaching example.
+The question is: Is it possible to write small readable code?
 
+We are using classic 'Hunt the Wumpus' as teaching example.
 Here is the result.
 
 **Is possible to do it better?**
