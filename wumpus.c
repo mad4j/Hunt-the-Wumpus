@@ -1,5 +1,5 @@
 /*
- * Hunt the Wumpus
+ * Hunt the Wumpus 2015
  * by Daniele Olmisani <daniele.olmisani@gmail.com>
  *
  * compile:
@@ -379,9 +379,11 @@ int main(int argc, char* argv[]) {
     }
 
     do { 
-        
+
         game_setup();
         game_play();
 
     } while (getlet("NEW GAME (Y-N)") != 'N');
+
+    return 0;
 }
