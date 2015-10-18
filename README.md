@@ -1,7 +1,14 @@
 [![Build Status](https://travis-ci.org/mad4j/Hunt-the-Wumpus.svg?branch=master)](https://travis-ci.org/mad4j/Hunt-the-Wumpus)
 
 # Hunt-the-Wumpus
-Wrinting small readable code.
+
+The question is: Is it possible to write small readable code.
+We are using classic 'Hunt the Wumpus' as teaching example.
+
+Here is the result.
+
+**You can do it better?**
+
 
 ```c
 /*
