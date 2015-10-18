@@ -7,7 +7,7 @@ We are using classic 'Hunt the Wumpus' as teaching example.
 
 Here is the result.
 
-**You can do it better?**
+**Is possible to do it better?**
 
 
 ```c
