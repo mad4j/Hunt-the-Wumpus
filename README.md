@@ -3,7 +3,7 @@
 # Hunt-the-Wumpus
 Wrinting small readable code.
 
-```
+```c
 /*
  * Hunt the Wumpus
  * by Daniele Olmisani <daniele.olmisani@gmail.com>
