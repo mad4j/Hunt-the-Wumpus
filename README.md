@@ -12,7 +12,7 @@ Here is the result.
 
 ```c
 /*
- * Hunt the Wumpus
+ * Hunt the Wumpus 2015
  * by Daniele Olmisani <daniele.olmisani@gmail.com>
  *
  * compile:
@@ -22,7 +22,8 @@ Here is the result.
  * ./wumpus [-h] [-s seed] [-d]
  *
  * see also:
- * wumpus.c by Eric S. Raymond <esr@snark.thyrsus.com>
+ * wumpus.c  by Eric S. Raymond <esr@snark.thyrsus.com>
+ * wump.c    BSD Games source code distributions
  */
 
 #include <stdio.h>
